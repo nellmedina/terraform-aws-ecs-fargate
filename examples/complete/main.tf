@@ -1,12 +1,20 @@
+variable "vpc_id" {
+  default = "vpc-02e09d5fbf4b98211"
+}
+
+variable "subnets" {
+  default = ["subnet-04676ca5151426d2b", "subnet-053b91915bbcffd18"]
+}
+
 module "ecs_fargate" {
   source                = "../../"
   name                  = "example"
   container_name        = "${local.container_name}"
   container_port        = "${local.container_port}"
   cluster               = "${aws_ecs_cluster.example.arn}"
-  subnets               = ["${module.vpc.public_subnet_ids}"]
+  subnets               = var.subnets
   target_group_arn      = "${module.alb.alb_target_group_arn}"
-  vpc_id                = "${module.vpc.vpc_id}"
+  vpc_id                = var.vpc_id
   container_definitions = "${data.template_file.default.rendered}"
 
   desired_count                      = 2
@@ -80,14 +88,16 @@ resource "aws_ecs_cluster" "example" {
 }
 
 module "alb" {
-  source                     = "git::https://github.com/tmknom/terraform-aws-alb.git?ref=tags/1.4.1"
+  source                     = "git::https://github.com/nellmedina/terraform-aws-alb.git"
   name                       = "ecs-fargate"
-  vpc_id                     = "${module.vpc.vpc_id}"
-  subnets                    = ["${module.vpc.public_subnet_ids}"]
+  vpc_id                     = var.vpc_id
+  subnets                    = var.subnets
   access_logs_bucket         = "${module.s3_lb_log.s3_bucket_id}"
   enable_https_listener      = false
   enable_http_listener       = true
   enable_deletion_protection = false
+
+  access_logs_enabled        = false
 }
 
 module "s3_lb_log" {
@@ -103,17 +113,17 @@ module "s3_access_log" {
   force_destroy = true
 }
 
-module "vpc" {
-  source                    = "git::https://github.com/tmknom/terraform-aws-vpc.git?ref=tags/2.0.0"
-  cidr_block                = "${local.cidr_block}"
-  name                      = "ecs-fargate"
-  public_subnet_cidr_blocks = ["${cidrsubnet(local.cidr_block, 8, 0)}", "${cidrsubnet(local.cidr_block, 8, 1)}"]
-  public_availability_zones = ["ap-southeast-1a", "ap-southeast-1c"]
-}
+# module "vpc" {
+#   source                    = "git::https://github.com/tmknom/terraform-aws-vpc.git?ref=tags/2.0.0"
+#   cidr_block                = "${local.cidr_block}"
+#   name                      = "ecs-fargate"
+#   public_subnet_cidr_blocks = ["${cidrsubnet(local.cidr_block, 8, 0)}", "${cidrsubnet(local.cidr_block, 8, 1)}"]
+#   public_availability_zones = ["ap-southeast-1a", "ap-southeast-1c"]
+# }
 
-locals {
-  cidr_block = "10.255.0.0/16"
-}
+# locals {
+#   cidr_block = "10.255.0.0/16"
+# }
 
 data "aws_caller_identity" "current" {}
 

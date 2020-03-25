@@ -1,9 +1,5 @@
 # terraform-aws-ecs-fargate
 
-[![CircleCI](https://circleci.com/gh/tmknom/terraform-aws-ecs-fargate.svg?style=svg)](https://circleci.com/gh/tmknom/terraform-aws-ecs-fargate)
-[![GitHub tag](https://img.shields.io/github/tag/tmknom/terraform-aws-ecs-fargate.svg)](https://registry.terraform.io/modules/tmknom/ecs-fargate/aws)
-[![License](https://img.shields.io/github/license/tmknom/terraform-aws-ecs-fargate.svg)](https://opensource.org/licenses/Apache-2.0)
-
 Terraform module which creates ECS Fargate resources on AWS.
 
 ## Description

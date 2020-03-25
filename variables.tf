@@ -63,8 +63,8 @@ variable "deployment_controller_type" {
 }
 
 variable "assign_public_ip" {
-  default     = false
-  type        = string
+  default     = true
+  type        = bool
   description = "Assign a public IP address to the ENI (Fargate launch type only). Valid values are true or false."
 }
 
@@ -118,7 +118,7 @@ variable "tags" {
 
 variable "enabled" {
   default     = true
-  type        = string
+  type        = bool
   description = "Set to false to prevent the module from creating anything."
 }
 

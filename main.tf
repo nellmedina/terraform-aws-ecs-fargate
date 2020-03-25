@@ -13,48 +13,48 @@
 
 # https://www.terraform.io/docs/providers/aws/r/ecs_service.html
 resource "aws_ecs_service" "default" {
-  count = "${var.enabled}"
+  count = var.enabled ? 1 : 0
 
   # The name of your service. Up to 255 letters (uppercase and lowercase), numbers, hyphens, and underscores are allowed.
   # Service names must be unique within a cluster, but you can have similarly named services
   # in multiple clusters within a region or across multiple regions.
-  name = "${var.name}"
+  name = var.name
 
   # The family and revision (family:revision) or full ARN of the task definition to run in your service.
   # If a revision is not specified, the latest ACTIVE revision is used.
-  task_definition = "${aws_ecs_task_definition.default.arn}"
+  task_definition = aws_ecs_task_definition.default[count.index].arn
 
   # The short name or full Amazon Resource Name (ARN) of the cluster on which to run your service.
   # If you do not specify a cluster, the default cluster is assumed.
-  cluster = "${var.cluster}"
+  cluster = var.cluster
 
   # The number of instantiations of the specified task definition to place and keep running on your cluster.
-  desired_count = "${var.desired_count}"
+  desired_count = var.desired_count
 
   # The maximumPercent parameter represents an upper limit on the number of your service's tasks
   # that are allowed in the RUNNING or PENDING state during a deployment,
   # as a percentage of the desiredCount (rounded down to the nearest integer).
-  deployment_maximum_percent = "${var.deployment_maximum_percent}"
+  deployment_maximum_percent = var.deployment_maximum_percent
 
   # The minimumHealthyPercent represents a lower limit on the number of your service's tasks
   # that must remain in the RUNNING state during a deployment,
   # as a percentage of the desiredCount (rounded up to the nearest integer).
-  deployment_minimum_healthy_percent = "${var.deployment_minimum_healthy_percent}"
+  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
 
   deployment_controller {
     # The deployment controller type to use. Valid values: CODE_DEPLOY, ECS.
-    type = "${var.deployment_controller_type}"
+    type = var.deployment_controller_type
   }
 
   # The network configuration for the service. This parameter is required for task definitions
   # that use the awsvpc network mode to receive their own Elastic Network Interface.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html
   network_configuration {
-    subnets         = ["${var.subnets}"]
-    security_groups = ["${aws_security_group.default.id}"]
+    subnets         =var.subnets
+    security_groups = aws_security_group.default.*.id
 
     # Whether the task's elastic network interface receives a public IP address.
-    assign_public_ip = "${var.assign_public_ip}"
+    assign_public_ip = var.assign_public_ip
   }
 
   # Note: As a result of an AWS limitation, a single load_balancer can be attached to the ECS service at most.
@@ -67,20 +67,20 @@ resource "aws_ecs_service" "default" {
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html#load-balancing-concepts
   load_balancer {
     # The ARN of the Load Balancer target group to associate with the service.
-    target_group_arn = "${var.target_group_arn}"
+    target_group_arn = var.target_group_arn
 
     # The name of the container to associate with the load balancer (as it appears in a container definition).
-    container_name = "${var.container_name}"
+    container_name = var.container_name
 
     # The port on the container to associate with the load balancer.
-    container_port = "${var.container_port}"
+    container_port = var.container_port
   }
 
   # If your service's tasks take a while to start and respond to Elastic Load Balancing health checks,
   # you can specify a health check grace period of up to 7,200 seconds. This grace period can prevent
   # the service scheduler from marking tasks as unhealthy and stopping them before they have time to come up.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-create-loadbalancer-rolling.html
-  health_check_grace_period_seconds = "${var.health_check_grace_period_seconds}"
+  health_check_grace_period_seconds = var.health_check_grace_period_seconds
 
   # The launch type on which to run your service.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html
@@ -108,10 +108,10 @@ resource "aws_ecs_service" "default" {
 #
 # https://www.terraform.io/docs/providers/aws/r/security_group.html
 resource "aws_security_group" "default" {
-  count = "${var.enabled}"
+  count = var.enabled ? 1 : 0
 
-  name   = "${local.security_group_name}"
-  vpc_id = "${var.vpc_id}"
+  name   = local.security_group_name
+  vpc_id = var.vpc_id
   tags   = "${merge(map("Name", local.security_group_name), var.tags)}"
 }
 
@@ -121,25 +121,25 @@ locals {
 
 # https://www.terraform.io/docs/providers/aws/r/security_group_rule.html
 resource "aws_security_group_rule" "ingress" {
-  count = "${var.enabled}"
+  count = var.enabled ? 1 : 0
 
   type              = "ingress"
   from_port         = "${var.container_port}"
   to_port           = "${var.container_port}"
   protocol          = "tcp"
-  cidr_blocks       = ["${var.ingress_cidr_blocks}"]
-  security_group_id = "${aws_security_group.default.id}"
+  cidr_blocks       = var.ingress_cidr_blocks
+  security_group_id = aws_security_group.default[count.index].id
 }
 
 resource "aws_security_group_rule" "egress" {
-  count = "${var.enabled}"
+  count = var.enabled ? 1 : 0
 
   type              = "egress"
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = "${aws_security_group.default.id}"
+  security_group_id = "${aws_security_group.default[count.index].id}"
 }
 
 # ECS Task Definitions
@@ -153,7 +153,7 @@ resource "aws_security_group_rule" "egress" {
 
 # https://www.terraform.io/docs/providers/aws/r/ecs_task_definition.html
 resource "aws_ecs_task_definition" "default" {
-  count = "${var.enabled}"
+  count = var.enabled ? 1 : 0
 
   # A unique name for your task definition.
   family = "${var.name}"
@@ -179,7 +179,7 @@ resource "aws_ecs_task_definition" "default" {
 
   # The launch type that the task is using.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#requires_compatibilities
-  requires_compatibilities = ["${var.requires_compatibilities}"]
+  requires_compatibilities = var.requires_compatibilities
 
   # Fargate infrastructure support the awsvpc network mode.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#network_mode
@@ -229,8 +229,8 @@ resource "aws_iam_policy" "default" {
 resource "aws_iam_role_policy_attachment" "default" {
   count = "${local.enabled_ecs_task_execution}"
 
-  role       = "${aws_iam_role.default.name}"
-  policy_arn = "${aws_iam_policy.default.arn}"
+  role       = "${aws_iam_role.default[count.index].name}"
+  policy_arn = "${aws_iam_policy.default[count.index].arn}"
 }
 
 locals {
